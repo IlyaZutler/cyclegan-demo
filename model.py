@@ -63,6 +63,7 @@ class Generator(nn.Module):
 
 
 def load_generators(weights_path: str, device: torch.device):
+
     """
     Загружает generators.pt — state_dict от model.generators (nn.ModuleDict).
     Возвращает dict {"a_to_b": Generator, "b_to_a": Generator}.
@@ -71,7 +72,18 @@ def load_generators(weights_path: str, device: torch.device):
         "a_to_b": Generator(),
         "b_to_a": Generator(),
     })
-    state = torch.load(weights_path, map_location=device)
+
+    state = torch.load(weights_path, map_location=device, weights_only=False)
+
+    # Если сохранили полный чекпоинт — вытащим model_state_dict
+    if "model_state_dict" in state:
+        state = state["model_state_dict"]
+
+    # Убираем префикс "generators." если он есть
+    if any(k.startswith("generators.") for k in state.keys()):
+        state = {k.replace("generators.", "", 1): v for k, v in state.items()
+                 if k.startswith("generators.")}
+
     generators.load_state_dict(state)
     generators.to(device)
     generators.eval()
